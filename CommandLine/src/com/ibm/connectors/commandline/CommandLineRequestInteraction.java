@@ -1,6 +1,22 @@
+/*
+Copyright 2015 IBM Corporation 
+Author Oliver Wynn
+ 
+  All rights reserved. This program and the accompanying materials
+  are made available under the terms of the MIT License
+  which accompanies this distribution, and is available at
+  http://opensource.org/licenses/MIT
+ 
+  Contributors:
+      Oliver Wynn - initial implementation v0.1
+*/
+
 package com.ibm.connectors.commandline;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.Properties;
 
 
@@ -18,41 +34,58 @@ public class CommandLineRequestInteraction extends AbstractRequestInteraction {
 		return 0;
 	}
 
+	public static String readOutput(InputStream output){
+		   
+		   String message = null;
+		   BufferedReader bfReader = new BufferedReader(new InputStreamReader(output)); 
+		   StringBuffer buffer = new StringBuffer();
+	    String line = null;
+	    try {
+	 	   while ( (line = bfReader.readLine()) != null) {
+			       buffer.append(line + "\n");
+			   }
+	    } catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+	    }
+	    message = buffer.toString();
+		   
+		   return message;
+	}
+	
 	@Override
 	public Object request(Properties properties, Object arg1)
 			throws ConnectorException {
 
-		Runtime rt = Runtime.getRuntime();
-        RuntimeExec rte = new RuntimeExec();
-        com.ibm.connectors.commandline.RuntimeExec.StreamWrapper error, output;
+		
         
         String command = properties.getProperty("command");
-        String Output = "";
+        String Out = "";
         
         if(command == null || command == ""){
-        	Output = "<Result><message>No Command given</message></Result>";
+        	Out = "<Result><message>No Command given</message></Result>";
         	
         }else{
-	        
-	        try {
-                Process proc = rt.exec(command);
-                error = rte.getStreamWrapper(proc.getErrorStream(), "ERROR");
-                output = rte.getStreamWrapper(proc.getInputStream(), "OUTPUT");
-                int exitVal = 0;
-                error.start();
-                output.start();
-                error.join(3000);
-                output.join(3000);
-                exitVal = proc.waitFor();
-                Output = "<Result><command>"+command+"</command><output><![CDATA[" + output.message +" ]]></output><error><![CDATA[" + error.message +"]]></error></Result>";
-	        } catch (IOException e) {
-	                    Output = "<Result><command>"+command+"</command><error><![CDATA["+e.toString()+"]]></error></Result>";
-	        } catch (InterruptedException e) {
-	                    Output = "<Result><command>"+command+"</command><error><![CDATA["+e.toString()+"]]></error></Result>";
-	        }
+			Runtime rt = Runtime.getRuntime();
+			String outMsg = null;
+			String errorMsg = null;
+	  
+			Process pr = null;
+			try {
+				pr = rt.exec(command);
+				InputStream Output = pr.getInputStream();
+				InputStream error = pr.getErrorStream();
+				
+			outMsg = readOutput(Output);
+			errorMsg = readOutput(error);
+			Out = "<Result><command>"+command+"</command><output><![CDATA[" + outMsg +" ]]></output><error><![CDATA[" + errorMsg +"]]></error></Result>";
+			} catch (IOException e) {
+				Out = "<Result><command>"+command+"</command><error><![CDATA["+e.toString()+"]]></error></Result>";
+			}
+					
         }
-        
-        byte[] responseBytes = Output.getBytes();
+	        
+        byte[] responseBytes = Out.getBytes();
         return responseBytes;
 	}
 }
