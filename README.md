@@ -1,2 +1,4 @@
+**This repo has not been in active development for a long while and is being archived.**
+
 # shell-script-connector
 Connector and node for use with IBM Integration bus to execute command line scripts from a message flow in a local or remote (ssh) shell.
